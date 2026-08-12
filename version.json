@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "downloadUrl": "",
+  "version": "0.1.1",
+  "downloadUrl": "https://github.com/slucin2009/PROYECTO-REAL/releases/download/v0.1.1/liceocristianopeninsular.apk",
   "forceUpdate": false,
-  "changelog": "Versión inicial"
+  "changelog": "Primera actualización de CampusFix.\n\n• Mejoras generales\n• Correcciones de errores\n• Sistema de actualización automática"
 }
