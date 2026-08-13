@@ -1,6 +1,6 @@
 {
-  "version": "0.1.2",
-  "downloadUrl": "https://github.com/slucin2009/PROYECTO-REAL/releases/download/v0.1.2/liceocristianopeninsular.apk",
+  "version": "0.1.3",
+  "downloadUrl": "https://github.com/slucin2009/PROYECTO-REAL/releases/download/v0.1.3/liceocristianopeninsular.apk",
   "forceUpdate": true,
-  "changelog": "Nueva actualización de CampusFix.\n\n• Los estudiantes ahora pueden crear reclamos directamente.\n• Se agregó el logo institucional.\n• Mejoras y correcciones."
+  "changelog": "Nueva actualización de CampusFix.\n\n• Correcciones de advertencias de Flutter.\n• Mejoras en el sistema de actualización.\n• Mejoras y correcciones generales."
 }
