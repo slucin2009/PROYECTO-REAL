@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:campus_fix/providers/update_provider.dart';
 import 'package:campus_fix/widgets/update_dialog.dart';
 
-/// Widget que verifica actualizaciones y muestra el diálogo si es necesario
-/// Envuelve el contenido principal de la aplicación
-class UpdateCheckWrapper extends ConsumerWidget {
+class UpdateCheckWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
   const UpdateCheckWrapper({
@@ -14,29 +13,87 @@ class UpdateCheckWrapper extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dialogShown = ref.watch(updateDialogShownProvider);
+  ConsumerState<UpdateCheckWrapper> createState() =>
+      _UpdateCheckWrapperState();
+}
 
-    // Mostrar el diálogo cuando haya actualización disponible y no se haya mostrado aún
-    ref.listen(updateStatusProvider, (previous, next) {
-      next.whenData((update) {
-        if (update != null && !dialogShown && context.mounted) {
-          ref.read(updateDialogShownProvider.notifier).state = true;
+class _UpdateCheckWrapperState
+    extends ConsumerState<UpdateCheckWrapper> {
+  bool _checking = false;
 
-          showDialog(
-            context: context,
-            barrierDismissible: !update.isRequired, // No cerrar si es obligatoria
-            builder: (context) => UpdateDialog(
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdate();
+    });
+  }
+
+  Future<void> _checkForUpdate() async {
+    if (_checking || !mounted) {
+      return;
+    }
+
+    _checking = true;
+
+    try {
+      final update = await ref.read(
+        updateStatusProvider.future,
+      );
+
+      if (!mounted || update == null) {
+        debugPrint(
+          '[UpdateCheck] No hay actualización disponible',
+        );
+
+        return;
+      }
+
+      final alreadyShown =
+          ref.read(updateDialogShownProvider);
+
+      if (alreadyShown) {
+        return;
+      }
+
+      ref
+          .read(updateDialogShownProvider.notifier)
+          .state = true;
+
+      debugPrint(
+        '[UpdateCheck] Diálogo mostrado',
+      );
+
+      await showDialog(
+        context: context,
+        barrierDismissible: !update.isRequired,
+        barrierColor: Colors.black54,
+        builder: (context) {
+          return PopScope(
+            canPop: !update.isRequired,
+            child: UpdateDialog(
               updateInfo: update,
-              onLater: () {
-                Navigator.of(context).pop();
-              },
+              onLater: update.isRequired
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                    },
             ),
           );
-        }
-      });
-    });
+        },
+      );
+    } catch (e) {
+      debugPrint(
+        '[UpdateCheck] Error mostrando actualización: $e',
+      );
+    } finally {
+      _checking = false;
+    }
+  }
 
-    return child;
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

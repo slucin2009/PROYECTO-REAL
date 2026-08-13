@@ -5,6 +5,7 @@ import 'package:campus_fix/models/lost_item.dart';
 import 'package:campus_fix/providers/auth_provider.dart';
 import 'package:campus_fix/services/firestore_service.dart';
 import 'package:campus_fix/widgets/animated_list_item.dart';
+
 import 'package:intl/intl.dart';
 
 final claimsProvider = FutureProvider.autoDispose.family<List<Claim>, (String?, bool)>((ref, params) async {
@@ -18,6 +19,12 @@ final userNameProvider = FutureProvider.autoDispose.family<String, String>((ref,
 
 final lostItemProvider = FutureProvider.autoDispose.family<LostItem?, String>((ref, itemId) async {
   return FirestoreService.instance.fetchLostItemById(itemId);
+});
+
+final availableLostItemsProvider = FutureProvider.autoDispose<List<LostItem>>((ref) async {
+  // Obtener objetos perdidos con estado 'Pendiente' disponibles para reclamación
+  final items = await FirestoreService.instance.fetchLostItems();
+  return items.where((item) => item.status == 'Pendiente').toList();
 });
 
 class ClaimsScreen extends ConsumerWidget {
@@ -69,7 +76,197 @@ class ClaimsScreen extends ConsumerWidget {
           return Center(child: Text('No se pudieron cargar los reclamos.'));
         },
       ),
+      floatingActionButton: studentMode
+          ? FloatingActionButton(
+              onPressed: () => _showCreateClaimDialog(context, ref, userId),
+              tooltip: 'Crear reclamo',
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
+  }
+
+  Future<void> _showCreateClaimDialog(BuildContext context, WidgetRef ref, String? userId) async {
+    final itemsAsync = ref.read(availableLostItemsProvider);
+    
+    await itemsAsync.when(
+      data: (items) async {
+        if (!context.mounted) return;
+        if (items.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No hay objetos disponibles para reclamar en este momento.')),
+          );
+          return;
+        }
+        
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Crear reclamo'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Selecciona el objeto que deseas reclamar:'),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.maxFinite,
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      separatorBuilder: (context, index) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return InkWell(
+                          onTap: () async {
+                            Navigator.of(context).pop();
+                            await _openClaimForm(context, ref, item, userId);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              item.title,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () async {
+        await showDialog(
+          context: context,
+          builder: (context) => const AlertDialog(
+            content: CircularProgressIndicator(),
+          ),
+        );
+      },
+      error: (error, stackTrace) async {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al cargar los objetos disponibles.')),
+        );
+      },
+    );
+  }
+
+  Future<void> _openClaimForm(
+    BuildContext context,
+    WidgetRef ref,
+    LostItem item,
+    String? userId,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    final questionControllers = <String, TextEditingController>{};
+    for (var q in item.verificationQuestions) {
+      questionControllers[q.id] = TextEditingController();
+    }
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Verificar propiedad del objeto'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Objeto: ${item.title}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  if (item.verificationQuestions.isNotEmpty) ...[
+                    const Text(
+                      'Responde las preguntas de verificación:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    for (var q in item.verificationQuestions) ...[
+                      Text(q.question),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: questionControllers[q.id],
+                        decoration: const InputDecoration(labelText: 'Tu respuesta'),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Respuesta requerida.' : null,
+                      ),
+                      const SizedBox(height: 12),
+                    ]
+                  ] else ...[
+                    const Text('Este objeto no tiene preguntas de verificación.'),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(context).pop(true);
+                }
+              },
+              child: const Text('Enviar reclamo'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (accepted != true || !context.mounted) return;
+
+    try {
+      final answers = item.verificationQuestions
+          .map((q) => VerificationAnswer(
+                questionId: q.id,
+                answer: questionControllers[q.id]?.text.trim() ?? '',
+              ))
+          .toList();
+
+      final claim = Claim(
+        id: '',
+        lostItemId: item.id,
+        userId: userId ?? 'estudiante_anonimo',
+        status: 'Pendiente',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        verificationAnswers: answers,
+      );
+
+      await FirestoreService.instance.createClaim(claim);
+
+      if (!context.mounted) return;
+      ref.invalidate(claimsProvider((userId, studentMode)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reclamo enviado correctamente.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      debugPrint('Error creating claim: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al enviar el reclamo.')),
+      );
+    }
   }
 }
 
@@ -114,7 +311,7 @@ class _ClaimCard extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         loading: () => const Text('Cargando...'),
-                        error: (_, __) => Text('Estudiante'),
+                        error: (error, stackTrace) => Text('Estudiante'),
                       ),
                       const SizedBox(height: 4),
                       lostItemAsync.when(
@@ -124,7 +321,7 @@ class _ClaimCard extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         loading: () => const Text('Objeto: Cargando...'),
-                        error: (_, __) => const Text('Objeto: Desconocido'),
+                        error: (error, stackTrace) => const Text('Objeto: Desconocido'),
                       ),
                     ],
                   ),
@@ -161,7 +358,7 @@ class _ClaimCard extends ConsumerWidget {
                   );
                 },
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (error, stackTrace) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 12),
             ],
@@ -224,7 +421,7 @@ class _ClaimCard extends ConsumerWidget {
       ),
     );
 
-      if (confirmed == true && context.mounted) {
+    if (confirmed == true && context.mounted) {
       try {
         await FirestoreService.instance.deleteClaim(claim.id);
         if (!context.mounted) return;
@@ -303,3 +500,4 @@ class _StatusDropdown extends ConsumerWidget {
     );
   }
 }
+

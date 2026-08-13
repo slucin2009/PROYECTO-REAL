@@ -1,0 +1,6 @@
+{
+  "version": "1.0.1",
+  "downloadUrl": "https://example.com/campus_fix_1.0.1.apk",
+  "forceUpdate": false,
+  "changelog": "• Mejoras de rendimiento\n• Corrección de errores menores"
+}

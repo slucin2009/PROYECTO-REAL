@@ -20,10 +20,13 @@ class AppVersion {
   });
 
   factory AppVersion.fromJson(Map<String, dynamic> json) {
+    // El JSON remoto puede usar la clave 'forceUpdate' (según la especificación)
+    // o 'isRequired' (compatibilidad). Aceptamos ambos.
+    final bool isReq = json['forceUpdate'] as bool? ?? json['isRequired'] as bool? ?? false;
     return AppVersion(
       version: json['version'] as String,
       downloadUrl: json['downloadUrl'] as String,
-      isRequired: json['isRequired'] as bool? ?? false,
+      isRequired: isReq,
       changelog: json['changelog'] as String?,
     );
   }

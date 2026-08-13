@@ -8,6 +8,7 @@ import 'package:campus_fix/screens/maintenance/maintenance_list_screen.dart';
 import 'package:campus_fix/screens/claims/claims_screen.dart';
 import 'package:campus_fix/screens/admin/admin_dashboard_screen.dart';
 import 'package:campus_fix/services/auth_service.dart';
+import 'package:campus_fix/widgets/institution_logo.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final bool studentMode;
@@ -60,7 +61,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       return Scaffold(
         appBar: AppBar(
-          title: const Text(AppStrings.appName),
+          title: Row(
+            children: [
+              const InstitutionLogo(width: 40, height: 40),
+              const SizedBox(width: 12),
+              const Text(AppStrings.appName),
+            ],
+          ),
           elevation: 0,
           centerTitle: false,
           actions: [
@@ -114,7 +121,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text(AppStrings.appName),
+            title: Row(
+              children: [
+                const InstitutionLogo(width: 40, height: 40),
+                const SizedBox(width: 12),
+                const Text(AppStrings.appName),
+              ],
+            ),
             elevation: 0,
             centerTitle: false,
             actions: [

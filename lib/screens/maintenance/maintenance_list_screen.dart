@@ -231,14 +231,14 @@ class _MaintenanceReportCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(report.description, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 12),
-            if (!studentMode)
+              if (!studentMode)
               userNameAsync.when(
                 data: (name) => Text(
                   'Reportado por: $name',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
                 ),
                 loading: () => const Text('Reportado por: Cargando...'),
-                error: (_, __) => Text('Reportado por: ${report.userId}'),
+                error: (error, stackTrace) => Text('Reportado por: ${report.userId}'),
               ),
             const SizedBox(height: 8),
             Wrap(

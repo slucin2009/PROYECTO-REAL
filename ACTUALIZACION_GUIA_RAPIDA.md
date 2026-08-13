@@ -46,6 +46,31 @@ static const String? changelog = '''
 ''';
 ```
 
+### 4.1️⃣ Usar GitHub para la configuración remota (recomendado)
+
+En lugar de editar manualmente los valores locales, puedes subir un archivo `version.json`
+al repositorio de GitHub y apuntar `UpdateConfig.versionJsonUrl` a la URL "raw" del archivo.
+
+Ejemplo de `version.json` (usa el archivo `version.json.example` en la raíz del proyecto):
+
+```json
+{
+  "version": "1.0.1",
+  "downloadUrl": "https://example.com/campus_fix_1.0.1.apk",
+  "forceUpdate": false,
+  "changelog": "• Mejoras de rendimiento\n• Corrección de errores menores"
+}
+```
+
+Dónde subirlo en GitHub:
+
+- Coloca `version.json` en la rama `main` (o la rama que uses para producción), por ejemplo en la raíz del repositorio.
+- Obtén la URL "raw" para el archivo: `https://raw.githubusercontent.com/<usuario>/<repo>/main/version.json`
+- Pega esa URL en `lib/core/constants/update_config.dart` → `versionJsonUrl`.
+
+Cada vez que publiques una nueva APK, sube la nueva `version.json` con la versión actualizada y la URL del APK.
+
+
 ### 5️⃣ ¡Listo!
 
 Todos los usuarios con versión anterior verán el diálogo al abrir la app.

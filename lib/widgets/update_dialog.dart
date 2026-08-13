@@ -16,7 +16,7 @@ class UpdateDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !updateInfo.isRequired, // No cerrar si es obligatoria
+      canPop: !updateInfo.isRequired,
       child: AlertDialog(
         title: const Text('Nueva actualización disponible'),
         content: SingleChildScrollView(

@@ -12,39 +12,67 @@ import 'widgets/update_check_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: CampusFixApp()));
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(
+    const ProviderScope(
+      child: CampusFixApp(),
+    ),
+  );
 }
 
 class CampusFixApp extends ConsumerWidget {
   const CampusFixApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
     final authState = ref.watch(authStateProvider);
     final studentMode = ref.watch(studentModeProvider);
 
     final homeWidget = authState.when(
       data: (user) {
         if (user != null && !user.isAnonymous) {
-          return const HomeScreen(studentMode: false);
+          return const HomeScreen(
+            studentMode: false,
+          );
         }
+
         if (studentMode) {
-          return const HomeScreen(studentMode: true);
+          return const HomeScreen(
+            studentMode: true,
+          );
         }
+
         return const LoginScreen();
       },
       loading: () {
         if (studentMode) {
-          return const HomeScreen(studentMode: true);
+          return const HomeScreen(
+            studentMode: true,
+          );
         }
+
         return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
         );
       },
-      error: (error, stackTrace) => const Scaffold(
-        body: Center(child: Text(AppStrings.errorGeneral)),
-      ),
+      error: (error, stackTrace) {
+        return const Scaffold(
+          body: Center(
+            child: Text(
+              AppStrings.errorGeneral,
+            ),
+          ),
+        );
+      },
     );
 
     return MaterialApp(
@@ -53,7 +81,9 @@ class CampusFixApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: UpdateCheckWrapper(child: homeWidget),
+      home: UpdateCheckWrapper(
+        child: homeWidget,
+      ),
     );
   }
 }
